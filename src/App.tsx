@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import './App.css';
 import { fetchCountries } from './services/countryService';
 import { Country } from './types/Country';
@@ -11,6 +11,10 @@ import SortOptions, {
 } from './components/SortOptions';
 import { getUniqueRegions } from './utils/regionUtils';
 import { sortCountries } from './utils/sortUtils';
+import {
+  loadVisitedCountries,
+  saveVisitedCountries,
+} from './utils/storageUtils';
 
 function App() {
   const [countries, setCountries] = useState<Country[]>([]);
@@ -20,6 +24,9 @@ function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortField, setSortField] = useState<SortField>('name');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+  const [visitedCountries, setVisitedCountries] = useState<Set<string>>(
+    loadVisitedCountries()
+  );
 
   useEffect(() => {
     const getCountries = async () => {
@@ -39,44 +46,71 @@ function App() {
     getCountries();
   }, []);
 
-  const regions = getUniqueRegions(countries);
+  // Save visited countries to localStorage whenever they change
+  useEffect(() => {
+    saveVisitedCountries(visitedCountries);
+  }, [visitedCountries]);
 
-  const filteredCountries = countries.filter((country) => {
-    // Apply region filter if selected
-    const matchesRegion = !selectedRegion || country.region === selectedRegion;
+  // Memoize regions to prevent recalculation on every render
+  const regions = useMemo(() => getUniqueRegions(countries), [countries]);
 
-    // Apply search filter if query exists
-    const matchesSearch =
-      !searchQuery ||
-      country.name.common.toLowerCase().includes(searchQuery.toLowerCase());
+  // Memoize filtered countries to prevent recalculation on every render
+  const filteredCountries = useMemo(() => {
+    return countries.filter((country) => {
+      const matchesRegion =
+        !selectedRegion || country.region === selectedRegion;
 
-    return matchesRegion && matchesSearch;
-  });
+      const matchesSearch =
+        !searchQuery ||
+        country.name.common.toLowerCase().includes(searchQuery.toLowerCase());
 
-  // Sort the filtered results
-  const sortedCountries = sortCountries(
-    filteredCountries,
-    sortField,
-    sortDirection
+      return matchesRegion && matchesSearch;
+    });
+  }, [countries, selectedRegion, searchQuery]);
+
+  // Memoize sorted countries to prevent recalculation on every render
+  const sortedCountries = useMemo(
+    () => sortCountries(filteredCountries, sortField, sortDirection),
+    [filteredCountries, sortField, sortDirection]
   );
 
-  const handleRegionChange = (region: string) => {
+  // Memoize event handlers to prevent recreation on every render
+  const handleRegionChange = useCallback((region: string) => {
     setSelectedRegion(region);
-  };
+  }, []);
 
-  const handleSearchChange = (query: string) => {
+  const handleSearchChange = useCallback((query: string) => {
     setSearchQuery(query);
-  };
+  }, []);
 
-  const handleSortChange = (field: SortField, direction: SortDirection) => {
-    setSortField(field);
-    setSortDirection(direction);
-  };
+  const handleSortChange = useCallback(
+    (field: SortField, direction: SortDirection) => {
+      setSortField(field);
+      setSortDirection(direction);
+    },
+    []
+  );
+
+  // Memoize the toggle function to prevent recreation on every render
+  const toggleVisitedCountry = useCallback((countryCode: string) => {
+    setVisitedCountries((prevVisited) => {
+      const newVisited = new Set(prevVisited);
+      if (newVisited.has(countryCode)) {
+        newVisited.delete(countryCode);
+      } else {
+        newVisited.add(countryCode);
+      }
+      return newVisited;
+    });
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
       <header className="bg-white dark:bg-gray-800 shadow py-6 px-4">
         <h1 className="text-2xl font-bold">Countries of the World</h1>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+          Visited: {visitedCountries.size} countries
+        </p>
       </header>
 
       <main className="container mx-auto px-4 py-6">
@@ -101,6 +135,8 @@ function App() {
           countries={sortedCountries}
           isLoading={isLoading}
           error={error}
+          visitedCountries={visitedCountries}
+          onToggleVisited={toggleVisitedCountry}
         />
       </main>
     </div>

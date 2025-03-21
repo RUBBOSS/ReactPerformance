@@ -1,3 +1,5 @@
+import { memo } from 'react';
+
 interface SearchBarProps {
   searchQuery: string;
   onSearchChange: (query: string) => void;
@@ -34,4 +36,4 @@ function SearchBar({ searchQuery, onSearchChange }: SearchBarProps) {
   );
 }
 
-export default SearchBar;
+export default memo(SearchBar);
