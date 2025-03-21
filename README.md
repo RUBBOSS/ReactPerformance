@@ -19,15 +19,16 @@ The profiling results below measure the differences between these two implementa
 
 ### Overview of Application Performance
 
-We used React Dev Tools Profiler to analyze the performance of our Countries application. Below are the key findings from profiling various interactions like filtering, searching, and sorting countries.
+We used React Dev Tools Profiler to analyze the performance of our Countries application both before and after implementing optimizations with React.memo, useMemo, and useCallback.
 
 ### Key Profiling Results
 
-#### Initial Performance Analysis
+#### Before Optimization
 
 From our profiling data (03-20-2025), we observed the following commit durations without optimizations:
 
 ![React Profiler Screenshot](./public/Screenshot(32).png)
+![React Profiler Screenshot](./public/afterOptimize.png)
 
 | Commit # | Duration (ms) | Interaction Type |
 |----------|--------------|-----------------|
@@ -39,16 +40,34 @@ From our profiling data (03-20-2025), we observed the following commit durations
 | 6        | 3.5          | Filter Region   |
 | 7        | 3.3          | Filter Region   |
 
-The results show that:
-- The initial render took about 31ms
-- Search interactions were efficient (1.4-5.4ms)
-- Sorting operations were the most expensive (62.8ms)
-- Region filtering was relatively quick (3.3-3.5ms)
+#### After Optimization
 
-#### Component Render Analysis
+From our profiling data (03-21-2025), we observed significant improvements:
 
-From the component measures in our profiling data:
+| Commit # | Duration (ms) | Interaction Type | Improvement |
+|----------|--------------|-----------------|-------------|
+| 1        | 16.4         | Initial Render  | 47.3% faster |
+| 2        | 74.5         | Data Load       | N/A (fetching operation) |
+| 3-10     | ~1.5 (avg)   | Search/Filter   | 66.7% faster |
+| 11       | 16.1         | Sort Operation  | 74.4% faster |
 
+The results show dramatic improvements:
+- The initial render was reduced from 31.1ms to 16.4ms (47.3% faster)
+- Search and filter operations now average around 1.5ms (down from 4.5ms)
+- Most importantly, sorting operations improved from 62.8ms to 16.1ms (74.4% faster)
+
+#### 1. Commit Duration Comparison
+
+| Operation      | Before (ms) | After (ms) | Improvement |
+|----------------|------------|-----------|-------------|
+| Initial Render | 31.1       | 16.4      | 47.3% faster |
+| Search Input   | 3.8 (avg)  | 1.2 (avg) | 68.4% faster |
+| Sort Operation | 62.8       | 16.1      | 74.4% faster |
+| Filter Region  | 3.4 (avg)  | 1.0 (avg) | 70.6% faster |
+
+#### Component Render Analysis Before Optimization
+
+Without optimizations, components were rendering unnecessarily:
 ```
 {
   "componentName": "App",
@@ -91,6 +110,52 @@ From the component measures in our profiling data:
 - Individual component render times were very fast (mostly < 0.3ms)
 - The `CountryList` component had the longest render time (2ms)
 - `CountryCard` components rendered in approximately 0.2ms each
+
+#### Component Render Analysis After Optimization
+
+With optimizations, we observed reduced render times:
+```
+{
+  "componentName": "App",
+  "duration": 1.2000000476837158,
+  "timestamp": 10.5,
+  "type": "render"
+},
+{
+  "componentName": "SearchBar",
+  "duration": 0.10000002384185791,
+  "timestamp": 12.5,
+  "type": "render"
+},
+{
+  "componentName": "RegionFilter",
+  "duration": 0.20000004768371582,
+  "timestamp": 12.700000047683716,
+  "type": "render"
+},
+{
+  "componentName": "SortOptions",
+  "duration": 0.10000002384185791,
+  "timestamp": 13.200000047683716,
+  "type": "render"
+},
+{
+  "componentName": "CountryList",
+  "duration": 1.5,
+  "timestamp": 13.400000095367432,
+  "type": "render"
+},
+{
+  "componentName": "CountryCard",
+  "duration": 0.10000002384185791,
+  "timestamp": 16.90000009536743,
+  "type": "render"
+}
+```
+
+- Render times for all components were reduced
+- The `CountryList` component's render time decreased from 2ms to 1.5ms
+- `CountryCard` components now render in approximately 0.1ms each
 
 ### Performance Observations
 

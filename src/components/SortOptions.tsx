@@ -1,3 +1,5 @@
+import { memo } from 'react';
+
 export type SortField = 'name' | 'population';
 export type SortDirection = 'asc' | 'desc';
 
@@ -37,4 +39,4 @@ function SortOptions({
   );
 }
 
-export default SortOptions;
+export default memo(SortOptions);

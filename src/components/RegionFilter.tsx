@@ -1,3 +1,5 @@
+import { memo } from 'react';
+
 interface RegionFilterProps {
   regions: string[];
   selectedRegion: string;
@@ -28,4 +30,4 @@ function RegionFilter({
   );
 }
 
-export default RegionFilter;
+export default memo(RegionFilter);
